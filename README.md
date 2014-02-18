@@ -1,10 +1,9 @@
 # Micro Cutter
-------------
 
 Create the base files needed for a micro gem (potentially stored in a
 gist).
 
-# Usage
+## Usage
 
 Call the executable, passing a camel cased class name:
 
@@ -17,23 +16,22 @@ This creates boilerplate files (overwriting any already there):
 * acts_as_boolean.rb
 * acts_as_boolean_spec.rb
 
-# Using a Gist to store your MicroGem
+## Using a Gist to store your MicroGem
 
-Head to gist.github.com and create a gist:
+Head to [gist.github.com](https://gist.github.com) and create a gist:
 
 * Give it a good name
-* Set the filename to README.md
-* Add some dummy content
-* Click "Create Public Gist" (or private if you have trouble sharing)
 
-Update the gist from your new MicroGem:
-
-    git clone git@gist.github.com:YOUR_GIST_ID.git YOUR_DESIRED_FOLDER_NAME
-    cd YOUR_DESIRED_FOLDER_NAME
     micro-cutter YourClassName
-    git add .
-    git commit -v
-    git push origin master
+    cd your_class_name
+
+## Options
+
+* `-g` Disable Gemfile creation
+* `-r` Disable RSpec
+* `-s` Disable Gem signing when [waxseal](https://github.com/steakknife/waxseal) is available
+* `-a` git commit && push, and make a private jist is installed `gem install gist`
+* `-P` make a public jist
 
 # Credits
 

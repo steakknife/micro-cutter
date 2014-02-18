@@ -1,0 +1,13 @@
+# <%= @class_name %>
+
+## Installation
+
+Add this to your `Gemfile`:
+
+    gem '<%= @class_name_underscore %>', github: 'your_user/<%= @class_name_underscore %>' 
+
+## Description and usage
+
+    require '<%= @class_name_underscore %>'
+    <%= @class_name %>.new
+

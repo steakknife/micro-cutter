@@ -13,30 +13,94 @@ class MyVars
   end
 end
 
+def sh(*args)
+  cmd = args.join ' '
+  puts cmd
+  system *args
+  raise "#{cmd} failed" unless $?.success?
+end
+
+has_waxseal = system 'which waxseal >/dev/null 2>&1'
+    has_git = system 'which git >/dev/null 2>&1'
+   has_jist = system 'which jist >/dev/null 2>&1'
+
+ commit_sign = !(ARGV.delete('--no-commit-sign')|| ARGV.delete('-c')) && has_git 
+     bundler = !(ARGV.delete('--no-gemfile')    || ARGV.delete('-g'))
+    gem_sign = !(ARGV.delete('--no-gem-sign')   || ARGV.delete('-s')) && has_waxseal 
+       rspec = !(ARGV.delete('--no-rspec')      || ARGV.delete('-r'))
+    autopush = !(ARGV.delete('--auto-push')     || ARGV.delete('-a')) && has_git
+public_micro = !(ARGV.delete('--public')        || ARGV.delete('-p')) && has_jist
+   make_jist = !(ARGV.delete('--no-gist')       || ARGV.delete('-n')) && has_jist
+
 class_name = ARGV[0]
 # Dirt simple way to convert 'AbcDef' to 'abc_def'
 class_name_underscore = class_name.gsub(/(.)([A-Z])/, '\1_\2').downcase
 
 vars_binding = MyVars.new(class_name, class_name_underscore).binding 
 
-Dir.glob("#{File.dirname(__FILE__)}/../templates/*.erb") do |file|
+def template_file(file)
   erb_template = ERB.new File.read(file)
   erb_result = erb_template.result(var_binding)
 
   # Remove the path from the file string
   file_name = File.basename file
 
+  append = (file_name =~ /\.erb_append\z/)
+
   # Remove .erb from the filename, and replace
   # the 'class_name' placeholder from the file name
-  new_file_name = file_name.gsub(/.erb/, '').gsub(/class_name/, class_name_underscore)
+  new_file_name = file_name.gsub('/.erb_append').gsub(/.erb/, '').gsub(/class_name/, class_name_underscore)
 
-  # Skip existing files 
-  if File.exist? new_file_name
-    $stderr.puts "#{new_file_name} already exist (skipping)"
-    next
+  unless append
+    # Skip existing files 
+    if File.exist? new_file_name
+      puts "#{new_file_name} already exist (skipping)"
+      return
+    end
+
+    # Skip if not using bundler
+    if 'Gemfile' == new_file_name && !bundler
+      puts "#{new_file_name} (skipping based on argument)"
+      return
+    end
   end
-  
   # Create a new file, writing the erb template result 
   puts "Creating: #{new_file_name}"
-  File.new(new_file_name, 'w') do { |new_file| new_file.write erb_result }
+  File.new(new_file_name, (append) ? 'a' : 'w') { |new_file| new_file.write erb_result }
 end
+
+
+template_dir = Dir.join(File.dirname(__FILE__), 'templates')
+template_subdirs = []
+template_subdirs << 'bundler' if bundler
+template_subdirs << 'rspec' if rspec
+template_subdirs << '.'
+template_dirs = template_subdirs.map {|x| Dir.join template_dir}
+
+Dir.mkdir class_name_underscore
+Dir.chdir class_name_underscore
+
+%w|*.erb *.erb_append|.each {|ext|
+  template_dirs.each { |dir|
+    Dir[File.join dir, '*.erb'] {|file| template_file file}
+  }
+}
+
+sh 'git init' if autopush
+
+if make_jist
+  https_gist_url = %x[jist #{public_micro ? '-p' : ''} -d '#{class_name_underscore}' *]
+  if $?.success?
+    gist = $1 if https_gist_url =~ /([a-f0-9]+)\z/
+    ssh_gist_url = "gist@gist.github.com:#{gist}.git"
+    sh "git remote add origin #{ssh_gist_url}"
+  else
+    $stderr.puts 'Failed to make gist'
+  end
+end
+
+sh "git add -A && git commit #{commit_sign ? '-S' : ''} -m micro-cutter" if autopush
+
+sh 'waxseal' if sign
+
+sh 'git push origin master' if autopush
