@@ -30,8 +30,6 @@ Dir.glob("#{File.dirname(__FILE__)}/../templates/*.erb") do |file|
   # the 'class_name' placeholder from the file name
   new_file_name = file_name.gsub(/.erb/, '').gsub(/class_name/, class_name_underscore)
 
-  puts "Creating: #{new_file_name}"
-
   # Skip existing files 
   if File.exist? new_file_name
     $stderr.puts "#{new_file_name} already exist (skipping)"
@@ -39,5 +37,6 @@ Dir.glob("#{File.dirname(__FILE__)}/../templates/*.erb") do |file|
   end
   
   # Create a new file, writing the erb template result 
+  puts "Creating: #{new_file_name}"
   File.new(new_file_name, 'w') do { |new_file| new_file.write erb_result }
 end
