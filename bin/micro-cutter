@@ -4,8 +4,12 @@ require 'erb'
 
 class MyVars
   def initialize(class_name, class_name_underscore)
-    @class_name            = class_name
+    @class_name = class_name
     @class_name_underscore = class_name_underscore
+  end
+
+  def binding
+    super
   end
 end
 
@@ -13,10 +17,10 @@ class_name = ARGV[0]
 # Dirt simple way to convert 'AbcDef' to 'abc_def'
 class_name_underscore = class_name.gsub(/(.)([A-Z])/, '\1_\2').downcase
 
-var_binding = MyVars.new(class_name, class_name_underscore).send(:binding)
+vars_binding = MyVars.new(class_name, class_name_underscore).binding 
 
 Dir.glob("#{File.dirname(__FILE__)}/../templates/*.erb") do |file|
-  erb_template = ERB.new File.open(file, 'r').read
+  erb_template = ERB.new File.read(file)
   erb_result = erb_template.result(var_binding)
 
   # Remove the path from the file string
@@ -28,8 +32,12 @@ Dir.glob("#{File.dirname(__FILE__)}/../templates/*.erb") do |file|
 
   puts "Creating: #{new_file_name}"
 
+  # Skip existing files 
+  if File.exist? new_file_name
+    $stderr.puts "#{new_file_name} already exist (skipping)"
+    next
+  end
+  
   # Create a new file, writing the erb template result 
-  new_file = File.new(new_file_name, 'w')
-  new_file.write erb_result
-  new_file.close
+  File.new(new_file_name, 'w') do { |new_file| new_file.write erb_result }
 end
